@@ -38,6 +38,9 @@
      <pointsize>18</pointsize>
     </font>
    </property>
+   <property name="editTriggers">
+    <set>QAbstractItemView::DoubleClicked</set>
+   </property>
    <property name="dragEnabled">
     <bool>false</bool>
    </property>

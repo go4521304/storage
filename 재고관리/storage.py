@@ -71,6 +71,8 @@ class SearchWindow(QDialog, form_search):
         self.QLine_search.textChanged.connect(self.findBar)
         self.QLine_search.returnPressed.connect(self.findItem)
 
+        self.QList_search.itemDoubleClicked.connect(self.selItem)
+
 
     def lineCls(self):
         self.QLine_search.clear()
@@ -98,12 +100,11 @@ class SearchWindow(QDialog, form_search):
 
             # 항목을 리스트 내에 출력
             for i, head in enumerate(barHead):
-                self.QList_search.addItem(head + " - " + barValue[i])
+                self.QList_search.addItem(head + ": " + barValue[i])
         
         # 셀을 못찾을경우 출력
         except:
             self.QList_search.addItem("검색 결과가 없습니다.")
-
 
     
     def findItem(self):
@@ -124,6 +125,14 @@ class SearchWindow(QDialog, form_search):
         for i in cellList:
             if i.col == 2 or i.col == 3:
                 self.QList_search.addItem(storageSheet.cell(i.row, 3).value)
+        
+    # 더블 클릭하여 선택했을때 화면
+    # 이거부터 구현해야함
+    def selItem(self):
+        print(type(self.QList_search.currentItem()))
+        print(type(self.QList_search.selectedItems()[0]))
+        print(self.QList_search.selectedItems()[0].text())
+
 
         
         
