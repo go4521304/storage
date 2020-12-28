@@ -76,7 +76,36 @@ class SearchWindow(QDialog, form_search):
 
     def lineCls(self):
         self.QLine_search.clear()
-        pass
+
+    def listCls(self):
+        self.QList_search.clear()
+
+
+    def showItem(self, search):
+        # 품목을 찾으면 정보 출력
+        # 셀을 못찾으면 'CellNotFound(query)라는 오류를 내기에 try-except을 사용
+        try:
+            cell = storageSheet.find(search)
+
+            # self.lineCls()
+            # self.listCls()
+
+            # 라인와 리스트 클리어를 어느시접에 해줘야하는지
+            # 제품검색중 바코드 컴색 등등의 상황에서
+            
+
+            # 항목을 찾았으면 항목의 정보와 1열의 그 항목이 어떤것인지 가져와서 출력
+            # 차후 스프레드시트 내의 항목이 늘어나더라도 변경없이 사용가능
+            itemHead = storageSheet.row_values(1)
+            itemValue = storageSheet.row_values(cell.row)
+
+            # 항목을 리스트 내에 출력
+            for i, head in enumerate(itemHead):
+                self.QList_search.addItem(head + ": " + itemValue[i])
+        
+        # 셀을 못찾을경우 출력
+        except:
+            self.QList_search.addItem("검색 결과가 없습니다.")
 
 
     def findBar(self):
@@ -84,31 +113,17 @@ class SearchWindow(QDialog, form_search):
         
         # 8자리 혹은 13자리 숫자가 아니면 스킵 (EAN-13 바코드 규격을 따름)
         if barcode.isdigit() == True and (len(barcode) == 8 or len(barcode) == 13):
-            self.QList_search.clear()
+            pass
         else:
             return
-
-        # 품목을 찾으면 정보 출력
-        # 셀을 못찾으면 'CellNotFound(query)라는 오류를 내기에 try-except을 사용
-        try:
-            cell = storageSheet.find(barcode)
-
-            # 항목을 찾았으면 항목의 정보와 1열의 그 항목이 어떤것인지 가져와서 출력
-            # 차후 스프레드시트 내의 항목이 늘어나더라도 변경없이 사용가능
-            barHead = storageSheet.row_values(1)
-            barValue = storageSheet.row_values(cell.row)
-
-            # 항목을 리스트 내에 출력
-            for i, head in enumerate(barHead):
-                self.QList_search.addItem(head + ": " + barValue[i])
         
-        # 셀을 못찾을경우 출력
-        except:
-            self.QList_search.addItem("검색 결과가 없습니다.")
+        # 바코드 검색 후 결과 출력
+        self.showItem(barcode)
+        
 
-    
+    # 검색하고 목록을 띄움
     def findItem(self):
-        self.QList_search.clear()
+        self.listCls()
         
         # 검색창에 입력이 안되있을시 종료
         if len(self.QLine_search.text()) == 0:
@@ -124,14 +139,19 @@ class SearchWindow(QDialog, form_search):
         # 회사 혹은 품명이 일치할시 항목을 보여줌
         for i in cellList:
             if i.col == 2 or i.col == 3:
-                self.QList_search.addItem(storageSheet.cell(i.row, 3).value)
-        
-    # 더블 클릭하여 선택했을때 화면
-    # 이거부터 구현해야함
+                self.QList_search.addItem("(" + storageSheet.cell(i.row, 2).value + ") " + storageSheet.cell(i.row, 3).value)
+
+    # 검색후 더블 클릭해서 물건의 상세정보를 띄움
     def selItem(self):
-        print(type(self.QList_search.currentItem()))
-        print(type(self.QList_search.selectedItems()[0]))
-        print(self.QList_search.selectedItems()[0].text())
+        # 변수명이 너무 길어서 저장해서 사용
+        itemName = self.QList_search.selectedItems()[0].text()
+
+        # 제품 이름만 분리해서 저장
+        namePos = re.search("\)\s", itemName).end()
+        itemName = itemName[namePos:]
+        
+        # 상세 정보 출력
+        self.showItem(itemName)
 
 
         
