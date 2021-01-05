@@ -82,17 +82,11 @@ class SearchWindow(QDialog, form_search):
 
 
     def showItem(self, search):
+        self.listCls()
         # 품목을 찾으면 정보 출력
         # 셀을 못찾으면 'CellNotFound(query)라는 오류를 내기에 try-except을 사용
         try:
             cell = storageSheet.find(search)
-
-            # self.lineCls()
-            # self.listCls()
-
-            # 라인와 리스트 클리어를 어느시접에 해줘야하는지
-            # 제품검색중 바코드 컴색 등등의 상황에서
-            
 
             # 항목을 찾았으면 항목의 정보와 1열의 그 항목이 어떤것인지 가져와서 출력
             # 차후 스프레드시트 내의 항목이 늘어나더라도 변경없이 사용가능
@@ -102,6 +96,8 @@ class SearchWindow(QDialog, form_search):
             # 항목을 리스트 내에 출력
             for i, head in enumerate(itemHead):
                 self.QList_search.addItem(head + ": " + itemValue[i])
+
+            self.lineCls()
         
         # 셀을 못찾을경우 출력
         except:
