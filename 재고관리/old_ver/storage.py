@@ -35,6 +35,7 @@ storageSheet = doc.worksheet('재고')
 
 # UI파일 연결
 form_class = uic.loadUiType("storage.ui")[0]
+form_search = uic.loadUiType("storage_search.ui")[0]
 
 ##############################################
 # 전역변수
@@ -57,39 +58,12 @@ form_class = uic.loadUiType("storage.ui")[0]
 # 리프레시 시간
 refreshTime = 30000
 
-
-class WindowClass(QMainWindow, form_class) :
-    def __init__(self) :
-        super().__init__()
+# 검색창 class
+class SearchWindow(QDialog, form_search):
+    def __init__(self, parent):
+        super(SearchWindow, self).__init__(parent)
         self.setupUi(self)
 
-        # 창 이름 설정
-        self.setWindowTitle('재고 관리')
-        
-        # lambda 식을 이용하여 처리
-        self.toMain.clicked.connect(lambda state, pageNum = 0 : self.setPage(state, pageNum))
-        self.toSearch.clicked.connect(lambda state, pageNum = 1: self.setPage(state, pageNum))
-
-        #################### 최근 내역 #########################
-        self.stkPage.setCurrentIndex(0)
-
-        # 로딩버튼이랑 연결(임시 테스트용)
-        self.QBtn_road.clicked.connect(self.load_timeLine)
-
-        # 오늘 날짜 저장 (0시를 기점으로)
-        global timeToday
-        timeToday = pd.Timestamp.now()
-        timeToday = timeToday.replace(hour = 0, minute = 0, second = 0, microsecond = 0, nanosecond = 0)
-
-        # 타임라인 로딩
-        self.load_timeLine()
-
-        # 타임라인 업데이트 설정
-        self.reFresh = QTimer(self)
-        self.reFresh.start(refreshTime)
-        self.reFresh.timeout.connect(self.load_timeLine)
-        
-        ###################### 검색 ######################
         # Btn 연결
         self.QBtn_searchCls.clicked.connect(self.lineCls)
         
@@ -99,37 +73,7 @@ class WindowClass(QMainWindow, form_class) :
 
         self.QList_search.itemDoubleClicked.connect(self.selItem)
 
-    ################################################################
-    def setPage(self, state, pageNum):
-        self.stkPage.setCurrentIndex(pageNum)
 
-    ####################### 최근 내역 ###############################
-    def load_timeLine(self):
-        # 일정 개수를 가져와서 후 처리
-        timeLine = timeSheet.get('A1:C10000')
-
-        # dataframe
-        timeLine = pd.DataFrame(timeLine, columns = timeLine[0])
-        timeLine = timeLine.reindex(timeLine.index.drop(0))
-        # 바로 위에 과정을 통해서 인덱스의 시작은 1번이지만
-        # 아래 for문에서는 위에서 '몇번째 인덱스' 순으로 사용을 해서 문제가 없음
-    
-        self.QTable_time.setRowCount(len(timeLine.index))
-        for i in range(len(timeLine.index)):
-            if parse(timeLine.iloc[i, 0]) > timeToday :
-                for j in range(len(timeLine.columns)):
-                    self.QTable_time.setItem(i, j, QTableWidgetItem(str(timeLine.iloc[i,j])))
-                    # 가운데 정렬
-                    self.QTable_time.item(i, j).setTextAlignment(Qt.AlignCenter)
-            else:
-                self.QTable_time.setRowCount(i)
-                break
-
-        # 칸 넓이 데이터에 맞게 수정
-        self.QTable_time.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-
-
-    #################################### 검색 #####################################
     def lineCls(self):
         self.QLine_search.clear()
 
@@ -186,7 +130,6 @@ class WindowClass(QMainWindow, form_class) :
 
         # 검색된것이 없으면 그냥 종료
         if len(cellList) == 0:
-            self.QList_search.addItem("검색 결과가 없습니다.")
             return
 
         # 회사 혹은 품명이 일치할시 항목을 보여줌
@@ -196,20 +139,80 @@ class WindowClass(QMainWindow, form_class) :
 
     # 검색후 더블 클릭해서 물건의 상세정보를 띄움
     def selItem(self):
-        try:
-            # 변수명이 너무 길어서 저장해서 사용
-            itemName = self.QList_search.selectedItems()[0].text()
-    
-            # 제품 이름만 분리해서 저장
-            namePos = re.search("\)\s", itemName).end()
-            itemName = itemName[namePos:]
-            
-            # 상세 정보 출력
-            self.showItem(itemName)
-        
-        except:
-            pass
+        # 변수명이 너무 길어서 저장해서 사용
+        itemName = self.QList_search.selectedItems()[0].text()
 
+        # 제품 이름만 분리해서 저장
+        namePos = re.search("\)\s", itemName).end()
+        itemName = itemName[namePos:]
+        
+        # 상세 정보 출력
+        self.showItem(itemName)
+
+
+        
+        
+
+# 화면을 띄우는데 사용되는 Class 선언
+class WindowClass(QMainWindow, form_class) :
+    def __init__(self) :
+        super().__init__()
+        self.setupUi(self)
+
+        # 창 이름 설정
+        self.setWindowTitle('재고 관리')
+
+        # 로딩버튼이랑 연결(임시 테스트용)
+        self.QBtn_road.clicked.connect(self.load_timeLine)
+
+        # 검색버튼이랑 연결
+        self.QBtn_search.clicked.connect(self.search_open)
+
+        # 오늘 날짜 저장 (0시를 기점으로)
+        global timeToday
+        timeToday = pd.Timestamp.now()
+        timeToday = timeToday.replace(hour = 0, minute = 0, second = 0, microsecond = 0, nanosecond = 0)
+
+        # 타임라인 로딩
+        self.load_timeLine()
+
+        # 타임라인 업데이트 설정
+        self.reFresh = QTimer(self)
+        self.reFresh.start(refreshTime)
+        self.reFresh.timeout.connect(self.load_timeLine)
+
+
+    def load_timeLine(self):
+        # 일정 개수를 가져와서 후 처리
+        timeLine = timeSheet.get('A1:C10000')
+
+        # dataframe
+        timeLine = pd.DataFrame(timeLine, columns = timeLine[0])
+        timeLine = timeLine.reindex(timeLine.index.drop(0))
+        # 바로 위에 과정을 통해서 인덱스의 시작은 1번이지만
+        # 아래 for문에서는 위에서 '몇번째 인덱스' 순으로 사용을 해서 문제가 없음
+    
+        self.QTable_time.setRowCount(len(timeLine.index))
+        for i in range(len(timeLine.index)):
+            if parse(timeLine.iloc[i, 0]) > timeToday :
+                for j in range(len(timeLine.columns)):
+                    self.QTable_time.setItem(i, j, QTableWidgetItem(str(timeLine.iloc[i,j])))
+                    # 가운데 정렬
+                    self.QTable_time.item(i, j).setTextAlignment(Qt.AlignCenter)
+            else:
+                self.QTable_time.setRowCount(i)
+                break
+
+        # 칸 넓이 데이터에 맞게 수정
+        self.QTable_time.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+
+    def search_open(self):
+        searchDialog = SearchWindow(self)
+        searchDialog.show()
+
+
+
+        
 
 if __name__ == "__main__" :
     # QApplication : 프로그램을 실행시켜주는 클래스
