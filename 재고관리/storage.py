@@ -115,9 +115,9 @@ class WindowClass(QMainWindow, form_class) :
         # 아래 for문에서는 위에서 '몇번째 인덱스' 순으로 사용을 해서 문제가 없음
     
         self.QTable_time.setRowCount(len(timeLine.index))
-        for i in range(len(timeLine.index)):
+        for i, _ in enumerate(timeLine.index):
             if parse(timeLine.iloc[i, 0]) > timeToday :
-                for j in range(len(timeLine.columns)):
+                for j, _ in enumerate(timeLine.columns):
                     self.QTable_time.setItem(i, j, QTableWidgetItem(str(timeLine.iloc[i,j])))
                     # 가운데 정렬
                     self.QTable_time.item(i, j).setTextAlignment(Qt.AlignCenter)
