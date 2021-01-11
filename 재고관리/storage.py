@@ -126,7 +126,9 @@ class WindowClass(QMainWindow, form_class) :
                 break
 
         # 칸 넓이 데이터에 맞게 수정
-        self.QTable_time.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.QTable_time.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.QTable_time.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.QTable_time.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
 
 
     #################################### 검색 #####################################
