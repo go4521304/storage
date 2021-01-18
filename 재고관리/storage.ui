@@ -37,7 +37,7 @@
     <enum>QFrame::Plain</enum>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <widget class="QWidget" name="mainPage">
     <widget class="QTableWidget" name="QTable_time">
@@ -85,7 +85,7 @@
       <number>3</number>
      </property>
      <attribute name="horizontalHeaderVisible">
-      <bool>true</bool>
+      <bool>false</bool>
      </attribute>
      <attribute name="horizontalHeaderCascadingSectionResizes">
       <bool>false</bool>
@@ -254,7 +254,7 @@
     </widget>
    </widget>
   </widget>
-  <widget class="QPushButton" name="toMain">
+  <widget class="QPushButton" name="QBtn_toMain">
    <property name="geometry">
     <rect>
      <x>880</x>
@@ -273,7 +273,7 @@
     <string>최근 기록</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="toSearch">
+  <widget class="QPushButton" name="QBtn_toSearch">
    <property name="geometry">
     <rect>
      <x>880</x>
@@ -296,8 +296,8 @@
   </widget>
  </widget>
  <tabstops>
-  <tabstop>toMain</tabstop>
-  <tabstop>toSearch</tabstop>
+  <tabstop>QBtn_toMain</tabstop>
+  <tabstop>QBtn_toSearch</tabstop>
   <tabstop>QTable_time</tabstop>
   <tabstop>QBtn_road</tabstop>
   <tabstop>QBtn_searchCls</tabstop>

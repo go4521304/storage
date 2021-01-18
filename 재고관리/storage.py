@@ -67,8 +67,8 @@ class WindowClass(QMainWindow, form_class) :
         self.setWindowTitle('재고 관리')
         
         # lambda 식을 이용하여 처리
-        self.toMain.clicked.connect(lambda state, pageNum = 0 : self.setPage(state, pageNum))
-        self.toSearch.clicked.connect(lambda state, pageNum = 1: self.setPage(state, pageNum))
+        self.QBtn_toMain.clicked.connect(lambda state, pageNum = 0 : self.setPage(state, pageNum))
+        self.QBtn_toSearch.clicked.connect(lambda state, pageNum = 1: self.setPage(state, pageNum))
 
         #################### 최근 내역 #########################
         self.stkPage.setCurrentIndex(0)
@@ -195,6 +195,11 @@ class WindowClass(QMainWindow, form_class) :
         for i in cellList:
             if i.col == 2 or i.col == 3:
                 self.QList_search.addItem("(" + storageSheet.cell(i.row, 2).value + ") " + storageSheet.cell(i.row, 3).value)
+        
+        # 보여준 항목이 없을시에 '검색결과 없음' 출력
+        if (self.QList_search.count() == 0):
+            self.QList_search.addItem("검색 결과가 없습니다.")
+        
 
     # 검색후 더블 클릭해서 물건의 상세정보를 띄움
     def selItem(self):
