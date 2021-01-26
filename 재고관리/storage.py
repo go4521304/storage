@@ -58,8 +58,78 @@ form_class = uic.loadUiType("storage.ui")[0]
 refreshTime = 30000
 
 
-class WindowClass(QMainWindow, form_class) :
-    def __init__(self) :
+# self.close() 창 닫기
+class editDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        
+        # ui 로딩
+        uic.loadUi("edit.ui", self)
+        
+        # 창 타이틀 설정
+        self.setWindowTitle("재고 추가 / 수정")
+
+        # 바코드가 존재하는지 확인
+        self.QLine_bar.textChanged.connect(self.checkBar)
+
+        # 저장 버튼 연결
+        self.QBtn_save.clicked.connect(self.save)
+
+        # 덮어쓰기 작업할때 업데이트 할 장소 저장
+        self.cell = None
+
+
+    # 종료시에 불림
+    def closeEvent(self, event):
+        # 사용한 변수들 초기화
+        self.cell = None
+        self.QLine_bar.setText('')
+        self.QLine_company.setText('')
+        self.QLine_model.setText('')
+        self.QLine_price.setText('')
+        self.QLine_quantity.setText('')
+        
+        event.accept()
+    
+    # 바코드가 이미 등록된 바코드인지 확인 - (이미 등록된 바코드면 등록된 정보를 불러옴)
+    def checkBar(self):
+        barcode = self.QLine_bar.text()
+        
+        # 8자리 혹은 13자리 숫자가 아니면 스킵 (EAN-13 바코드 규격을 따름)
+        if barcode.isdigit() == True and (len(barcode) == 8 or len(barcode) == 13):
+            pass
+        else:
+            return
+
+        # 품목을 찾으면 정보 받아옴
+        # 셀을 못찾으면 'CellNotFound(query)라는 오류를 내기에 try-except을 사용
+        try:
+            self.cell = storageSheet.find(barcode)
+            print(self.cell)
+
+            itemValue = storageSheet.row_values(cell.row)
+
+            self.QLine_company.setText(itemValue[1])
+            self.QLine_model.setText(itemValue[2])
+            self.QLine_price.setText(itemValue[3])
+            self.QLine_quantity.setText(itemValue[4])
+            
+        
+        # 셀을 못찾을경우 그냥 넘어감
+        except:
+            pass
+
+    def save(self):
+        print("call save")
+
+        
+
+
+##########################################################################################
+
+
+class WindowClass(QMainWindow, form_class):
+    def __init__(self):
         super().__init__()
         self.setupUi(self)
 
@@ -99,11 +169,18 @@ class WindowClass(QMainWindow, form_class) :
 
         self.QList_search.itemDoubleClicked.connect(self.selItem)
 
-    ################################################################
+        ###################### 추가 / 수정 ######################
+        # 추가 / 수정 class 연결
+        self.editUi = editDialog()
+
+        # 추가 / 수정 버튼 클릭시 Dialog 열기 (Modaless)
+        self.QBtn_warehousing.clicked.connect(self.openEdit)
+
+###################################################################################
     def setPage(self, state, pageNum):
         self.stkPage.setCurrentIndex(pageNum)
 
-    ####################### 최근 내역 ###############################
+#################################### 최근 내역 #####################################
     def load_timeLine(self):
         # 일정 개수를 가져와서 후 처리
         timeLine = timeSheet.get('A1:C10000')
@@ -154,8 +231,6 @@ class WindowClass(QMainWindow, form_class) :
             # 항목을 리스트 내에 출력
             for i, head in enumerate(itemHead):
                 self.QList_search.addItem(head + ": " + itemValue[i])
-
-            self.lineCls()
         
         # 셀을 못찾을경우 출력
         except:
@@ -216,6 +291,13 @@ class WindowClass(QMainWindow, form_class) :
         
         except:
             pass
+
+    #################################### 추가 / 수정 #####################################
+    def openEdit(self) :
+        self.editUi.show()
+
+    
+
 
 
 if __name__ == "__main__" :
