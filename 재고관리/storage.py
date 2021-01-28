@@ -59,6 +59,7 @@ refreshTime = 30000
 
 
 # self.close() 창 닫기
+
 class editDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -78,17 +79,41 @@ class editDialog(QDialog):
         # 덮어쓰기 작업할때 업데이트 할 장소 저장
         self.cell = None
 
+        # 변경내역 확인 할때 사용
+        self.itemValue = []
 
     # 종료시에 불림
     def closeEvent(self, event):
-        # 사용한 변수들 초기화
+        value = [self.QLine_bar.text(), self.QLine_company.text(), self.QLine_model.text(), self.QLine_price.text(), self.QLine_quantity.text()]
+        
+        reply = None
+        
+        if self.cell == None:
+            for i in value:
+                if i != '':
+                    reply = QMessageBox.question(self, '메시지', '아직 저장하지 않은 항목이 있습니다. \n 정말 닫으시겠습니까?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                    break
+        
+        else:
+            for i, v in enumerate(self.itemValue):
+                if v != value[i]:
+                    reply = QMessageBox.question(self, '메시지', '아직 저장하지 않은 항목이 있습니다. \n 정말 닫으시겠습니까?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                    break
+        
+        if reply == QMessageBox.No:
+            event.ignore()
+            return
+
+        # 사용한 것들 초기화 (변수, 텍스트 창)
         self.cell = None
+        self.itemValue = []
         self.QLine_bar.setText('')
         self.QLine_company.setText('')
         self.QLine_model.setText('')
         self.QLine_price.setText('')
         self.QLine_quantity.setText('')
-        
+
+        # 종료
         event.accept()
     
     # 바코드가 이미 등록된 바코드인지 확인 - (이미 등록된 바코드면 등록된 정보를 불러옴)
@@ -99,30 +124,54 @@ class editDialog(QDialog):
         if barcode.isdigit() == True and (len(barcode) == 8 or len(barcode) == 13):
             pass
         else:
+            self.cell = None
+            self.itemValue = []
             return
 
         # 품목을 찾으면 정보 받아옴
         # 셀을 못찾으면 'CellNotFound(query)라는 오류를 내기에 try-except을 사용
         try:
+            # 바코드가 존재하는거면 itemValue에 저장하고 화면에 내용을 띄움
             self.cell = storageSheet.find(barcode)
-            print(self.cell)
-
-            itemValue = storageSheet.row_values(cell.row)
-
-            self.QLine_company.setText(itemValue[1])
-            self.QLine_model.setText(itemValue[2])
-            self.QLine_price.setText(itemValue[3])
-            self.QLine_quantity.setText(itemValue[4])
+            self.itemValue = storageSheet.row_values(self.cell.row)
+            
+            # 화면에 띄우는 코드
+            self.QLine_company.setText(self.itemValue[1])
+            self.QLine_model.setText(self.itemValue[2])
+            self.QLine_price.setText(self.itemValue[3])
+            self.QLine_quantity.setText(self.itemValue[4])
             
         
-        # 셀을 못찾을경우 그냥 넘어감
+        # 셀을 못찾을경우 self.cell, self.itemValue 값을 초기화
         except:
-            pass
+            self.cell = None
+            self.itemValue = []
 
     def save(self):
-        print("call save")
-
+        # 화면에 있는 정보들 저장
+        value = [self.QLine_bar.text(), self.QLine_company.text(), self.QLine_model.text(), self.QLine_price.text(), self.QLine_quantity.text()]
         
+        # 빈칸이 있을 경우 경고문을 띄움
+        for i in value:
+            if i == '':
+                QMessageBox.warning(self, '경고', '비어있는 항목이 있습니다!', QMessageBox.Ok, QMessageBox.Ok)
+                return
+
+        # 저장작업
+        # cell 이 None이 아니면(== 기존 품목 수정)
+        if self.cell != None:
+            for i, v in enumerate(self.itemValue):
+                # 변경 사항이 있으면
+                if v != value[i]:
+                    storageSheet.update_cell(self.cell.row, i + 1, value[i])
+        
+        # 신규 저장
+        else:
+            storageSheet.append_row(value)
+
+        # cell, itemValue 업데이트
+        self.checkBar()
+
 
 
 ##########################################################################################
@@ -230,6 +279,10 @@ class WindowClass(QMainWindow, form_class):
 
             # 항목을 리스트 내에 출력
             for i, head in enumerate(itemHead):
+                # 단가와 현재 수량인경우 정규 표현식을 이용하여 천의 자리마다 끊어줌
+                if head == '단가' or head == '현재 수량':
+                    itemValue[i] = re.sub(r'\B(?=(\d{3})+(?!\d))', ',', itemValue[i])
+
                 self.QList_search.addItem(head + ": " + itemValue[i])
         
         # 셀을 못찾을경우 출력
@@ -258,6 +311,7 @@ class WindowClass(QMainWindow, form_class):
         if len(self.QLine_search.text()) == 0:
             return
 
+        # 졍규 표현식을 사용 re.I (대소문자 상관 X) 옵션을 줌
         searchCriteria = re.compile(self.QLine_search.text(), re.I)
         cellList = storageSheet.findall(searchCriteria)
 
