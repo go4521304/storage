@@ -59,6 +59,7 @@ refreshTime = 30000
 
 
 # self.close() 창 닫기
+##########################################################################################
 
 class editDialog(QDialog):
     def __init__(self):
@@ -172,7 +173,74 @@ class editDialog(QDialog):
         # cell, itemValue 업데이트
         self.checkBar()
 
+##########################################################################################
 
+class editQuantity(QDialog):
+    def __init__(self):
+        super().__init__()
+        
+        # ui 로딩
+        uic.loadUi("quantity.ui", self)
+        
+        # 창 타이틀 설정
+        self.setWindowTitle("입/출고")
+
+        # 수량 정보 저장 함수
+        self.info = None
+
+        # 버튼 연결
+        self.QBtn_save.clicked.connect(self.save)
+
+    def setInfo(self, info):
+        self.info = info
+
+
+    def closeEvent(self, event):
+        # 혹시 모른 상황에 대비해서 사용한 변수 초기화
+        self.info = None
+
+        ##################################################################################
+        # 여기에 시그널을 추가해서 종료시에 최근기록, 검색창을 다시 로딩하는 과정을 추가해야 함 #
+        ##################################################################################
+        
+        event.accept()
+
+    def save(self):
+        try:
+            # 숫자를 num에 저장
+            num = (int)(self.QLine_quantity.text())
+
+            # 출고 일때
+            if self.QCombo_type.currentText() == '출고':
+                self.info['value'] -= num
+                
+                # 만약 총 수량이 0보다 작으면 경고문 띄우고 다시 입력대기
+                if self.info['value'] < 0:
+                    QMessageBox.warning(self, '경고', '충분한 재고가 없습니다!', QMessageBox.Ok, QMessageBox.Ok)
+                    self.info['value'] += num
+                    return
+
+            # 입고 일때
+            elif self.QCombo_type.currentText() == '입고':
+                self.info['value'] += num
+            
+            # '재고' 시트에 수량 업데이트
+            storageSheet.update_cell(self.info['row'], self.info['col'], (str)(self.info['value']))
+            
+            # '기록' 시트에 넣을 값 추가
+            # 시간 - 거래종류 - 수량 - 품명
+            data = [dt.datetime.now().strftime(r"%Y-%m-%d %H:%M:%S"), self.QCombo_type.currentText(), num, self.info['name']]
+            
+            # '기록' 시트에 작업 내용 추가
+            timeSheet.insert_row(data, 2)
+            
+            # 성공적으로 끝냈으면 종료 이벤트 호출
+            self.close()
+        
+        except:
+            # 숫자가 아니거나 실수, 빈칸 등등의 의도치 않은 상황일 때
+            QMessageBox.warning(self, '경고', '제대로 입력해 주십시오!', QMessageBox.Ok, QMessageBox.Ok)
+        
 
 ##########################################################################################
 
@@ -192,9 +260,6 @@ class WindowClass(QMainWindow, form_class):
         #################### 최근 내역 #########################
         self.stkPage.setCurrentIndex(0)
 
-        # 로딩버튼이랑 연결(임시 테스트용)
-        self.QBtn_road.clicked.connect(self.load_timeLine)
-
         # 오늘 날짜 저장 (0시를 기점으로)
         global timeToday
         timeToday = pd.Timestamp.now()
@@ -210,20 +275,32 @@ class WindowClass(QMainWindow, form_class):
         
         ###################### 검색 ######################
         # Btn 연결
-        self.QBtn_searchCls.clicked.connect(self.lineCls)
+        self.QBtn_search.clicked.connect(self.findItem)
         
         # LineEdit 동작 연결
         self.QLine_search.textChanged.connect(self.findBar)
         self.QLine_search.returnPressed.connect(self.findItem)
 
         self.QList_search.itemDoubleClicked.connect(self.selItem)
-
         ###################### 추가 / 수정 ######################
         # 추가 / 수정 class 연결
         self.editUi = editDialog()
 
         # 추가 / 수정 버튼 클릭시 Dialog 열기 (Modaless)
         self.QBtn_warehousing.clicked.connect(self.openEdit)
+
+        ###################### 입 / 출고 ######################
+        # 입 / 출고 class 연결
+        self.quantityUi = editQuantity()
+        
+        # 입 / 출고 버튼 클릭시 Dialog 열기 (Modal)
+        self.QBtn_quantity.clicked.connect(self.openQuantity)
+        
+        # 검색이 될 때까지 버튼 비활성화
+        self.QBtn_quantity.setEnabled(False)
+
+        # 수량 정보 저장
+        self.quantityInfo = None
 
 ###################################################################################
     def setPage(self, state, pageNum):
@@ -232,29 +309,34 @@ class WindowClass(QMainWindow, form_class):
 #################################### 최근 내역 #####################################
     def load_timeLine(self):
         # 일정 개수를 가져와서 후 처리
-        timeLine = timeSheet.get('A1:C10000')
+        timeLine = timeSheet.get('A1:D10000')
 
         # dataframe
         timeLine = pd.DataFrame(timeLine, columns = timeLine[0])
         timeLine = timeLine.reindex(timeLine.index.drop(0))
         # 바로 위에 과정을 통해서 인덱스의 시작은 1번이지만
         # 아래 for문에서는 위에서 '몇번째 인덱스' 순으로 사용을 해서 문제가 없음
-    
+
+        totalNum = 0    
         self.QTable_time.setRowCount(len(timeLine.index))
         for i, _ in enumerate(timeLine.index):
             if parse(timeLine.iloc[i, 0]) > timeToday :
+                totalNum += int(timeLine .iloc[i]['수량'])
                 for j, _ in enumerate(timeLine.columns):
                     self.QTable_time.setItem(i, j, QTableWidgetItem(str(timeLine.iloc[i,j])))
                     # 가운데 정렬
                     self.QTable_time.item(i, j).setTextAlignment(Qt.AlignCenter)
             else:
                 self.QTable_time.setRowCount(i)
+                self.QLabel_total.setText('합계 ' + str(i))
+                self.QLabel_totalNum.setText('총 수량 ' + str(totalNum))
                 break
 
         # 칸 넓이 데이터에 맞게 수정
         self.QTable_time.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.QTable_time.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.QTable_time.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.QTable_time.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.QTable_time.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
 
 
     #################################### 검색 #####################################
@@ -263,6 +345,11 @@ class WindowClass(QMainWindow, form_class):
 
     def listCls(self):
         self.QList_search.clear()
+
+    def cantFind(self):
+        self.quantityInfo = None
+        self.QBtn_quantity.setEnabled(False)
+        self.QList_search.addItem("검색 결과가 없습니다.")
 
 
     def showItem(self, search):
@@ -279,15 +366,23 @@ class WindowClass(QMainWindow, form_class):
 
             # 항목을 리스트 내에 출력
             for i, head in enumerate(itemHead):
+                if head == '품명':
+                    self.quantityInfo = {'name': itemValue[i]}
+                elif head == '수량':
+                    self.quantityInfo['row'] = cell.row
+                    self.quantityInfo['col'] = i + 1
+                    self.quantityInfo['value'] = int(itemValue[i])
+
                 # 단가와 현재 수량인경우 정규 표현식을 이용하여 천의 자리마다 끊어줌
-                if head == '단가' or head == '현재 수량':
+                if head == '단가' or head == '수량':
                     itemValue[i] = re.sub(r'\B(?=(\d{3})+(?!\d))', ',', itemValue[i])
 
                 self.QList_search.addItem(head + ": " + itemValue[i])
+                self.QBtn_quantity.setEnabled(True)
         
         # 셀을 못찾을경우 출력
         except:
-            self.QList_search.addItem("검색 결과가 없습니다.")
+            self.cantFind()
 
 
     def findBar(self):
@@ -309,6 +404,7 @@ class WindowClass(QMainWindow, form_class):
         
         # 검색창에 입력이 안되있을시 종료
         if len(self.QLine_search.text()) == 0:
+            self.cantFind()
             return
 
         # 졍규 표현식을 사용 re.I (대소문자 상관 X) 옵션을 줌
@@ -317,7 +413,7 @@ class WindowClass(QMainWindow, form_class):
 
         # 검색된것이 없으면 그냥 종료
         if len(cellList) == 0:
-            self.QList_search.addItem("검색 결과가 없습니다.")
+            self.cantFind()
             return
 
         # 회사 혹은 품명이 일치할시 항목을 보여줌
@@ -327,7 +423,7 @@ class WindowClass(QMainWindow, form_class):
         
         # 보여준 항목이 없을시에 '검색결과 없음' 출력
         if (self.QList_search.count() == 0):
-            self.QList_search.addItem("검색 결과가 없습니다.")
+            self.cantFind()
         
 
     # 검색후 더블 클릭해서 물건의 상세정보를 띄움
@@ -350,6 +446,14 @@ class WindowClass(QMainWindow, form_class):
     def openEdit(self) :
         self.editUi.show()
 
+    #################################### 입 / 출고 #####################################
+    def openQuantity(self):
+        if self.quantityInfo == None:
+            return
+        
+        self.quantityUi.setInfo(self.quantityInfo)
+        self.quantityUi.exec_()
+        
     
 
 
