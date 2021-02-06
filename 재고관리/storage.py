@@ -53,15 +53,17 @@ form_class = uic.loadUiType("storage.ui")[0]
 # loc == 인덱스로 찾기
 # iloc == 행번호로 찾기
 ##############################################
+# self.close() 창 닫기
+##############################################
 
 # 리프레시 시간
 refreshTime = 30000
 
-
-# self.close() 창 닫기
 ##########################################################################################
 
 class editDialog(QDialog):
+    # 순서대로 '최근내역', '검색창'
+    refresh = pyqtSignal(bool, bool)
     def __init__(self):
         super().__init__()
         
@@ -72,7 +74,7 @@ class editDialog(QDialog):
         self.setWindowTitle("재고 추가 / 수정")
 
         # 바코드가 존재하는지 확인
-        self.QLine_bar.textChanged.connect(self.checkBar)
+        self.QLine_bar.returnPressed.connect(self.checkBar)
 
         # 저장 버튼 연결
         self.QBtn_save.clicked.connect(self.save)
@@ -170,12 +172,22 @@ class editDialog(QDialog):
         else:
             storageSheet.append_row(value)
 
-        # cell, itemValue 업데이트
+        # 화면 업데이트 시그널 호출
+        self.refresh.emit(True, True)
+        
+        # 메세지창 띄우고 종료
+        QMessageBox.information(self, '정보', '저장되었습니다!')
+        
+        # 저장됬다는걸 확인하기위해 확인용 변수 동기화
         self.checkBar()
+
+        self.close()
 
 ##########################################################################################
 
 class editQuantity(QDialog):
+    # 순서대로 '최근내역', '검색창'
+    refresh = pyqtSignal(bool, bool)
     def __init__(self):
         super().__init__()
         
@@ -191,6 +203,7 @@ class editQuantity(QDialog):
         # 버튼 연결
         self.QBtn_save.clicked.connect(self.save)
 
+    # 정보를 받아와서 class내 변수에 입력
     def setInfo(self, info):
         self.info = info
 
@@ -199,10 +212,6 @@ class editQuantity(QDialog):
         # 혹시 모른 상황에 대비해서 사용한 변수 초기화
         self.info = None
 
-        ##################################################################################
-        # 여기에 시그널을 추가해서 종료시에 최근기록, 검색창을 다시 로딩하는 과정을 추가해야 함 #
-        ##################################################################################
-        
         event.accept()
 
     def save(self):
@@ -233,6 +242,12 @@ class editQuantity(QDialog):
             
             # '기록' 시트에 작업 내용 추가
             timeSheet.insert_row(data, 2)
+
+            # 화면 업데이트 시그널 호출
+            self.refresh.emit(True, True)
+            
+            # 확인메세지 출력
+            QMessageBox.information(self, '정보', '저장되었습니다!')
             
             # 성공적으로 끝냈으면 종료 이벤트 호출
             self.close()
@@ -278,16 +293,18 @@ class WindowClass(QMainWindow, form_class):
         self.QBtn_search.clicked.connect(self.findItem)
         
         # LineEdit 동작 연결
-        self.QLine_search.textChanged.connect(self.findBar)
         self.QLine_search.returnPressed.connect(self.findItem)
-
         self.QList_search.itemDoubleClicked.connect(self.selItem)
+
         ###################### 추가 / 수정 ######################
         # 추가 / 수정 class 연결
         self.editUi = editDialog()
 
         # 추가 / 수정 버튼 클릭시 Dialog 열기 (Modaless)
         self.QBtn_warehousing.clicked.connect(self.openEdit)
+        
+        # 로딩 시그널 연결
+        self.editUi.refresh.connect(self.screenLoad)
 
         ###################### 입 / 출고 ######################
         # 입 / 출고 class 연결
@@ -301,10 +318,32 @@ class WindowClass(QMainWindow, form_class):
 
         # 수량 정보 저장
         self.quantityInfo = None
+        
+        # 로딩 시그널 연결
+        self.quantityUi.refresh.connect(self.screenLoad)
 
 ###################################################################################
     def setPage(self, state, pageNum):
         self.stkPage.setCurrentIndex(pageNum)
+
+    # 화면 업데이트
+    @pyqtSlot(bool, bool)
+    def screenLoad(self, load_TimeLine, load_Search):
+        if load_TimeLine:
+            self.load_timeLine()
+
+        if load_Search:
+            try:
+                # 첫째줄에서 바코드를 받아와서 다시 정보 출력
+                barcode = self.QList_search.item(0).text()
+                namePos = re.search(r"\:\s", barcode).end()
+                barcode = barcode[namePos:]
+                
+                self.showItem(barcode)
+            except:
+                # 바코드가 아니면 그냥 패스
+                pass
+        
 
 #################################### 최근 내역 #####################################
     def load_timeLine(self):
@@ -338,18 +377,19 @@ class WindowClass(QMainWindow, form_class):
         self.QTable_time.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.QTable_time.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
 
-
     #################################### 검색 #####################################
-    def lineCls(self):
-        self.QLine_search.clear()
-
     def listCls(self):
         self.QList_search.clear()
+
+    def lineCls(self):
+        self.QLine_search.clear()
 
     def cantFind(self):
         self.quantityInfo = None
         self.QBtn_quantity.setEnabled(False)
         self.QList_search.addItem("검색 결과가 없습니다.")
+
+        self.lineCls()
 
 
     def showItem(self, search):
@@ -379,61 +419,55 @@ class WindowClass(QMainWindow, form_class):
 
                 self.QList_search.addItem(head + ": " + itemValue[i])
                 self.QBtn_quantity.setEnabled(True)
+
+                self.lineCls()
         
         # 셀을 못찾을경우 출력
         except:
             self.cantFind()
 
-
-    def findBar(self):
-        barcode = self.QLine_search.text()
-        
-        # 8자리 혹은 13자리 숫자가 아니면 스킵 (EAN-13 바코드 규격을 따름)
-        if barcode.isdigit() == True and (len(barcode) == 8 or len(barcode) == 13):
-            pass
-        else:
-            return
-        
-        # 바코드 검색 후 결과 출력
-        self.showItem(barcode)
-        
-
-    # 검색하고 목록을 띄움
+    # 검색하고 항목을 띄움
     def findItem(self):
         self.listCls()
         
-        # 검색창에 입력이 안되있을시 종료
-        if len(self.QLine_search.text()) == 0:
-            self.cantFind()
-            return
+        # 텍스트 저장
+        lineText = self.QLine_search.text()
 
-        # 졍규 표현식을 사용 re.I (대소문자 상관 X) 옵션을 줌
-        searchCriteria = re.compile(self.QLine_search.text(), re.I)
-        cellList = storageSheet.findall(searchCriteria)
-
-        # 검색된것이 없으면 그냥 종료
-        if len(cellList) == 0:
-            self.cantFind()
-            return
-
-        # 회사 혹은 품명이 일치할시 항목을 보여줌
-        for i in cellList:
-            if i.col == 2 or i.col == 3:
-                self.QList_search.addItem("(" + storageSheet.cell(i.row, 2).value + ") " + storageSheet.cell(i.row, 3).value)
+        # 바코드면 바로 showItem에서 항목검색
+        if lineText.isdigit() == True and (len(lineText) == 8 or len(lineText) == 13):
+            self.showItem(lineText)
         
-        # 보여준 항목이 없을시에 '검색결과 없음' 출력
-        if (self.QList_search.count() == 0):
-            self.cantFind()
+        # 아니면 검색하고 목록을 띄움
+        else:
+            # 검색창에 입력이 안되있을시 종료
+            if len(lineText) == 0:
+                self.cantFind()
+                return
+    
+            # 졍규 표현식을 사용 re.I (대소문자 상관 X) 옵션을 줌
+            searchCriteria = re.compile(lineText, re.I)
+            cellList = storageSheet.findall(searchCriteria)
+    
+            # 회사 혹은 품명이 일치할시 항목을 보여줌
+            for i in cellList:
+                if i.col == 2 or i.col == 3:
+                    self.QList_search.addItem("(" + storageSheet.cell(i.row, 2).value + ") " + storageSheet.cell(i.row, 3).value)
+            
+            # 보여준 항목이 없을시에 '검색결과 없음' 출력
+            if (self.QList_search.count() == 0):
+                self.cantFind()
         
 
     # 검색후 더블 클릭해서 물건의 상세정보를 띄움
     def selItem(self):
+        # 더블클릭에 연결되어 있으므로 이미 검색이 끝나고 showItem 동작 이후로도 작동하기 때문에
+        # showItem 이후로는 namePos 동작에서 오류를 띄움 그걸 이용해서 의도하지 않은 동작 이외에는 무시처리
         try:
             # 변수명이 너무 길어서 저장해서 사용
             itemName = self.QList_search.selectedItems()[0].text()
     
             # 제품 이름만 분리해서 저장
-            namePos = re.search("\)\s", itemName).end()
+            namePos = re.search(r"\)\s", itemName).end()
             itemName = itemName[namePos:]
             
             # 상세 정보 출력

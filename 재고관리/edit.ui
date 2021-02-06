@@ -239,6 +239,9 @@
    <property name="text">
     <string>저장</string>
    </property>
+   <property name="autoDefault">
+    <bool>false</bool>
+   </property>
   </widget>
  </widget>
  <resources/>
