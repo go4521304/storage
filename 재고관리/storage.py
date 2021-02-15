@@ -14,24 +14,16 @@ import pandas as pd
 import datetime as dt
 from dateutil.parser import parse
 import re
-
-scope = [
-'https://spreadsheets.google.com/feeds',
-'https://www.googleapis.com/auth/drive',
-]
-json_file_name = 'storage-299609-970c24909d3f.json'
-credentials = ServiceAccountCredentials.from_json_keyfile_name(json_file_name, scope)
-gc = gspread.authorize(credentials)
-spreadsheet_url = 'https://docs.google.com/spreadsheets/d/1nIPCJtoxa4_up-aV4DB-0KPOqmoyCCPfXi0GieZgwPo/edit#gid=1615035515'
+import configparser
+import sys
 
 ##############################################
-
 # 스프레스시트 문서 가져오기 
-doc = gc.open_by_url(spreadsheet_url)
+doc = None
 
 # 시트 선택하기
-timeSheet = doc.worksheet('기록')
-storageSheet = doc.worksheet('재고')
+timeSheet = None
+storageSheet = None
 
 # UI파일 연결
 form_class = uic.loadUiType("storage.ui")[0]
@@ -59,7 +51,106 @@ form_class = uic.loadUiType("storage.ui")[0]
 # 리프레시 시간
 refreshTime = 30000
 
-##########################################################################################
+####################################################################################################################################################################################
+####################################################################################################################################################################################
+####################################################################################################################################################################################
+
+class configDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        # ui 로딩
+        uic.loadUi("setting.ui", self)
+        
+        # 창 타이틀 설정
+        self.setWindowTitle("설정")
+        
+        # 저장 버튼 연결
+        self.QBtn_save.clicked.connect(self.save)
+        
+        # 찾아 버튼 연결
+        self.QBtn_file.clicked.connect(self.file)
+        
+        # 설정 파일이 있는지 확인
+        self.load()
+    
+    def closeEvent(self, event):
+        # 불러오지 않고 그냥 닫을경우 프로그램 종료
+        if self.check() == False:
+            sys.exit()
+        
+        event.accept()
+
+
+    def load(self):
+        global doc
+        global timeSheet
+        global storageSheet
+
+        # configparser 모듈을 이용
+        config = configparser.ConfigParser()
+        config.read('config.ini', encoding= 'UTF-8')
+        
+        # 설정파일이 없거나 혹은 불러오기에 문제가 있을시 메세지 창을 띄움
+        try:
+            # API 연결
+            scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+            json_file_name = config['CONFIG']['path']
+            credentials = ServiceAccountCredentials.from_json_keyfile_name(json_file_name, scope)
+            gc = gspread.authorize(credentials)
+            spreadsheet_url = config['CONFIG']['url']
+
+            # 스프레스시트 문서 가져오기 
+            doc = gc.open_by_url(spreadsheet_url)
+            
+            # 시트 선택하기
+            timeSheet = doc.worksheet('기록')
+            storageSheet = doc.worksheet('재고')
+            
+            # 정상적으로 불러왔으면 종료 신호 호출
+            self.close()
+        
+        # 불러오기에 실패했을경우 오류 출력
+        except:
+            QMessageBox.critical(self, '경고', '불러오기에 실패했습니다!', QMessageBox.Ok, QMessageBox.Ok)
+
+    
+    def save(self):
+        # 입력된 값 저장
+        filePath = self.QLine_filePATH.text()
+        url = self.QLine_URL.text()
+        
+        # config 파일에 저장
+        config = configparser.ConfigParser()
+        config['CONFIG'] = {}
+        config['CONFIG']['path'] = filePath
+        config['CONFIG']['url'] = url
+
+        with open('config.ini', 'w', encoding= 'UTF-8') as conf_File:
+            config.write(conf_File)
+        
+        # 저장된값 로딩
+        self.load()
+
+    # 찾기 버튼 클릭시 파일탐색기 열어줌
+    def file(self):
+        fname = QFileDialog.getOpenFileName(self, '파일 열기', './')
+        self.QLine_filePATH.setText(fname[0])
+
+    # 스프레드시트를 불러왔는지 확인
+    def check(self):
+        global doc
+        global timeSheet
+        global storageSheet
+
+        if doc == None or timeSheet == None or storageSheet == None:
+            return False
+        
+        return True
+
+####################################################################################################################################################################################
+####################################################################################################################################################################################
+####################################################################################################################################################################################
 
 class editDialog(QDialog):
     # 순서대로 '최근내역', '검색창'
@@ -183,7 +274,9 @@ class editDialog(QDialog):
 
         self.close()
 
-##########################################################################################
+####################################################################################################################################################################################
+####################################################################################################################################################################################
+####################################################################################################################################################################################
 
 class editQuantity(QDialog):
     # 순서대로 '최근내역', '검색창'
@@ -257,7 +350,9 @@ class editQuantity(QDialog):
             QMessageBox.warning(self, '경고', '제대로 입력해 주십시오!', QMessageBox.Ok, QMessageBox.Ok)
         
 
-##########################################################################################
+####################################################################################################################################################################################
+####################################################################################################################################################################################
+####################################################################################################################################################################################
 
 
 class WindowClass(QMainWindow, form_class):
@@ -279,14 +374,6 @@ class WindowClass(QMainWindow, form_class):
         global timeToday
         timeToday = pd.Timestamp.now()
         timeToday = timeToday.replace(hour = 0, minute = 0, second = 0, microsecond = 0, nanosecond = 0)
-
-        # 타임라인 로딩
-        self.load_timeLine()
-
-        # 타임라인 업데이트 설정
-        self.reFresh = QTimer(self)
-        self.reFresh.start(refreshTime)
-        self.reFresh.timeout.connect(self.load_timeLine)
         
         ###################### 검색 ######################
         # Btn 연결
@@ -321,6 +408,27 @@ class WindowClass(QMainWindow, form_class):
         
         # 로딩 시그널 연결
         self.quantityUi.refresh.connect(self.screenLoad)
+
+        ###################### 설정 ######################
+        # 설정 class 연결
+        self.settingUI = configDialog()
+
+        # 설정 확인
+        if self.settingUI.check() == False:
+            # 없으면 설정창을 열어서 설정
+            self.settingUI.exec_()
+
+        ##################################################
+        # 타임라인 로딩
+        self.load_timeLine()
+
+        # 타임라인 업데이트 설정
+        self.reFresh = QTimer(self)
+        self.reFresh.start(refreshTime)
+        self.reFresh.timeout.connect(self.load_timeLine)
+        
+
+
 
 ###################################################################################
     def setPage(self, state, pageNum):
@@ -482,19 +590,22 @@ class WindowClass(QMainWindow, form_class):
 
     #################################### 입 / 출고 #####################################
     def openQuantity(self):
+        # 대상이 아직 지정되지 않았으면 종료
         if self.quantityInfo == None:
             return
         
+        # 입 / 출고 창 열기
         self.quantityUi.setInfo(self.quantityInfo)
         self.quantityUi.exec_()
-        
-    
 
+####################################################################################################################################################################################
+####################################################################################################################################################################################
+####################################################################################################################################################################################
 
 
 if __name__ == "__main__" :
     # QApplication : 프로그램을 실행시켜주는 클래스
-    app = QApplication(sys.argv) 
+    app = QApplication(sys.argv)
 
     # WindowClass의 인스턴스 생성
     myWindow = WindowClass() 
