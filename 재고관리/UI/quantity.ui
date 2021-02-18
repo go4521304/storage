@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>300</width>
-    <height>150</height>
+    <height>200</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -44,7 +44,9 @@
    <property name="font">
     <font>
      <family>나눔고딕</family>
-     <pointsize>10</pointsize>
+     <pointsize>11</pointsize>
+     <weight>50</weight>
+     <bold>false</bold>
     </font>
    </property>
    <item>
@@ -83,8 +85,8 @@
   <widget class="QPushButton" name="QBtn_save">
    <property name="geometry">
     <rect>
-     <x>90</x>
-     <y>100</y>
+     <x>100</x>
+     <y>145</y>
      <width>100</width>
      <height>30</height>
     </rect>
@@ -102,7 +104,54 @@
     <bool>true</bool>
    </property>
   </widget>
+  <widget class="QLineEdit" name="QLine_memo">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>90</y>
+     <width>210</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>나눔고딕</family>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>90</y>
+     <width>40</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>나눔고딕</family>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>비고</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
  </widget>
+ <tabstops>
+  <tabstop>QCombo_type</tabstop>
+  <tabstop>QLine_quantity</tabstop>
+  <tabstop>QLine_memo</tabstop>
+  <tabstop>QBtn_save</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

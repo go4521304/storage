@@ -26,7 +26,7 @@ timeSheet = None
 storageSheet = None
 
 # UI파일 연결
-form_class = uic.loadUiType("storage.ui")[0]
+form_class = uic.loadUiType("./UI/storage.ui")[0]
 
 ##############################################
 # 전역변수
@@ -60,10 +60,11 @@ class configDialog(QDialog):
         super().__init__()
 
         # ui 로딩
-        uic.loadUi("setting.ui", self)
+        uic.loadUi("./UI/setting.ui", self)
         
         # 창 타이틀 설정
         self.setWindowTitle("설정")
+        self.setWindowIcon(QIcon('./UI/color_icon.png'))
         
         # 저장 버튼 연결
         self.QBtn_save.clicked.connect(self.save)
@@ -159,10 +160,11 @@ class editDialog(QDialog):
         super().__init__()
         
         # ui 로딩
-        uic.loadUi("edit.ui", self)
+        uic.loadUi("./UI/edit.ui", self)
         
         # 창 타이틀 설정
         self.setWindowTitle("재고 추가 / 수정")
+        self.setWindowIcon(QIcon('./UI/color_icon.png'))
 
         # 바코드가 존재하는지 확인
         self.QLine_bar.returnPressed.connect(self.checkBar)
@@ -178,7 +180,7 @@ class editDialog(QDialog):
 
     # 종료시에 불림
     def closeEvent(self, event):
-        value = [self.QLine_bar.text(), self.QLine_company.text(), self.QLine_model.text(), self.QLine_price.text(), self.QLine_quantity.text()]
+        value = [self.QLine_bar.text(), self.QLine_company.text(), self.QLine_model.text(), self.QLine_cost.text(), self.QLine_price.text(), self.QLine_quantity.text()]
         
         reply = None
         
@@ -204,6 +206,7 @@ class editDialog(QDialog):
         self.QLine_bar.setText('')
         self.QLine_company.setText('')
         self.QLine_model.setText('')
+        self.QLine_cost.setText('')
         self.QLine_price.setText('')
         self.QLine_quantity.setText('')
 
@@ -213,37 +216,32 @@ class editDialog(QDialog):
     # 바코드가 이미 등록된 바코드인지 확인 - (이미 등록된 바코드면 등록된 정보를 불러옴)
     def checkBar(self):
         barcode = self.QLine_bar.text()
-        
-        # 8자리 혹은 13자리 숫자가 아니면 스킵 (EAN-13 바코드 규격을 따름)
-        if barcode.isdigit() == True and (len(barcode) == 8 or len(barcode) == 13):
-            pass
-        else:
-            self.cell = None
-            self.itemValue = []
-            return
 
-        # 품목을 찾으면 정보 받아옴
-        # 셀을 못찾으면 'CellNotFound(query)라는 오류를 내기에 try-except을 사용
-        try:
+        cellList = storageSheet.findall(barcode)
+
+        # 맞는 바코드가 있는지 확인
+        for i in cellList:
             # 바코드가 존재하는거면 itemValue에 저장하고 화면에 내용을 띄움
-            self.cell = storageSheet.find(barcode)
-            self.itemValue = storageSheet.row_values(self.cell.row)
-            
-            # 화면에 띄우는 코드
-            self.QLine_company.setText(self.itemValue[1])
-            self.QLine_model.setText(self.itemValue[2])
-            self.QLine_price.setText(self.itemValue[3])
-            self.QLine_quantity.setText(self.itemValue[4])
-            
-        
-        # 셀을 못찾을경우 self.cell, self.itemValue 값을 초기화
-        except:
-            self.cell = None
-            self.itemValue = []
+            if i.col == 1 and i.value == barcode:
+                self.cell = storageSheet.find(barcode)
+                self.itemValue = storageSheet.row_values(self.cell.row)
+                
+                # 화면에 띄우는 코드
+                self.QLine_company.setText(self.itemValue[1])
+                self.QLine_model.setText(self.itemValue[2])
+                self.QLine_cost.setText(self.itemValue[3])
+                self.QLine_price.setText(self.itemValue[4])
+                self.QLine_quantity.setText(self.itemValue[5])
+                break
+
+            # 셀을 못찾을경우 self.cell, self.itemValue 값을 초기화         
+            else:
+                self.cell = None
+                self.itemValue = []
 
     def save(self):
         # 화면에 있는 정보들 저장
-        value = [self.QLine_bar.text(), self.QLine_company.text(), self.QLine_model.text(), self.QLine_price.text(), self.QLine_quantity.text()]
+        value = [self.QLine_bar.text(), self.QLine_company.text(), self.QLine_model.text(), self.QLine_cost.text(), self.QLine_price.text(), self.QLine_quantity.text()]
         
         # 빈칸이 있을 경우 경고문을 띄움
         for i in value:
@@ -285,10 +283,11 @@ class editQuantity(QDialog):
         super().__init__()
         
         # ui 로딩
-        uic.loadUi("quantity.ui", self)
+        uic.loadUi("./UI/quantity.ui", self)
         
         # 창 타이틀 설정
         self.setWindowTitle("입/출고")
+        self.setWindowIcon(QIcon('./UI/color_icon.png'))
 
         # 수량 정보 저장 함수
         self.info = None
@@ -331,7 +330,7 @@ class editQuantity(QDialog):
             
             # '기록' 시트에 넣을 값 추가
             # 시간 - 거래종류 - 수량 - 품명
-            data = [dt.datetime.now().strftime(r"%Y-%m-%d %H:%M:%S"), self.QCombo_type.currentText(), num, self.info['name']]
+            data = [dt.datetime.now().strftime(r"%Y-%m-%d %H:%M:%S"), self.QCombo_type.currentText(), num, self.info['name'], self.QLine_memo.text()]
             
             # '기록' 시트에 작업 내용 추가
             timeSheet.insert_row(data, 2)
@@ -362,6 +361,7 @@ class WindowClass(QMainWindow, form_class):
 
         # 창 이름 설정
         self.setWindowTitle('재고 관리')
+        self.setWindowIcon(QIcon('./UI/color_icon.png'))
         
         # lambda 식을 이용하여 처리
         self.QBtn_toMain.clicked.connect(lambda state, pageNum = 0 : self.setPage(state, pageNum))
@@ -456,7 +456,7 @@ class WindowClass(QMainWindow, form_class):
 #################################### 최근 내역 #####################################
     def load_timeLine(self):
         # 일정 개수를 가져와서 후 처리
-        timeLine = timeSheet.get('A1:D10000')
+        timeLine = timeSheet.get('A1:E10000')
 
         # dataframe
         timeLine = pd.DataFrame(timeLine, columns = timeLine[0])
@@ -470,9 +470,10 @@ class WindowClass(QMainWindow, form_class):
             if parse(timeLine.iloc[i, 0]) > timeToday :
                 totalNum += int(timeLine .iloc[i]['수량'])
                 for j, _ in enumerate(timeLine.columns):
-                    self.QTable_time.setItem(i, j, QTableWidgetItem(str(timeLine.iloc[i,j])))
-                    # 가운데 정렬
-                    self.QTable_time.item(i, j).setTextAlignment(Qt.AlignCenter)
+                    if timeLine.iloc[i, j] != None:
+                        self.QTable_time.setItem(i, j, QTableWidgetItem(str(timeLine.iloc[i,j])))
+                        # 가운데 정렬
+                        self.QTable_time.item(i, j).setTextAlignment(Qt.AlignCenter)
             else:
                 self.QTable_time.setRowCount(i)
                 self.QLabel_total.setText('합계 ' + str(i))
@@ -483,6 +484,7 @@ class WindowClass(QMainWindow, form_class):
         self.QTable_time.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.QTable_time.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.QTable_time.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.QTable_time.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
         self.QTable_time.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
 
     #################################### 검색 #####################################
@@ -503,7 +505,7 @@ class WindowClass(QMainWindow, form_class):
     def showItem(self, search):
         self.listCls()
         # 품목을 찾으면 정보 출력
-        # 셀을 못찾으면 'CellNotFound(query)라는 오류를 내기에 try-except을 사용
+        # 셀을 못찾으면 'CellNotFound(query)라는 오류를 내기에 혹시 모르니 try-except을 사용
         try:
             cell = storageSheet.find(search)
 
@@ -521,8 +523,8 @@ class WindowClass(QMainWindow, form_class):
                     self.quantityInfo['col'] = i + 1
                     self.quantityInfo['value'] = int(itemValue[i])
 
-                # 단가와 현재 수량인경우 정규 표현식을 이용하여 천의 자리마다 끊어줌
-                if head == '단가' or head == '수량':
+                # 원가, 판매가, 현재 수량인경우 정규 표현식을 이용하여 천의 자리마다 끊어줌
+                if head == '원가' or head == '판매가' or head == '수량':
                     itemValue[i] = re.sub(r'\B(?=(\d{3})+(?!\d))', ',', itemValue[i])
 
                 self.QList_search.addItem(head + ": " + itemValue[i])
@@ -540,31 +542,30 @@ class WindowClass(QMainWindow, form_class):
         
         # 텍스트 저장
         lineText = self.QLine_search.text()
+        
+        # 검색창에 입력이 안되있을시 종료
+        if len(lineText) == 0:
+            self.cantFind()
+            return
 
-        # 바코드면 바로 showItem에서 항목검색
-        if lineText.isdigit() == True and (len(lineText) == 8 or len(lineText) == 13):
-            self.showItem(lineText)
-        
-        # 아니면 검색하고 목록을 띄움
-        else:
-            # 검색창에 입력이 안되있을시 종료
-            if len(lineText) == 0:
-                self.cantFind()
+        # 졍규 표현식을 사용 re.I (대소문자 상관 X) 옵션을 줌
+        searchCriteria = re.compile(lineText, re.I)
+        cellList = storageSheet.findall(searchCriteria)
+
+        # 회사 혹은 품명이 일치할시 항목을 보여줌
+        for i in cellList:
+            # 바코드면 바로 showItem으로 보냄
+            if i.col == 1 and i.value == lineText:
+                self.showItem(i.value)
                 return
-    
-            # 졍규 표현식을 사용 re.I (대소문자 상관 X) 옵션을 줌
-            searchCriteria = re.compile(lineText, re.I)
-            cellList = storageSheet.findall(searchCriteria)
-    
-            # 회사 혹은 품명이 일치할시 항목을 보여줌
-            for i in cellList:
-                if i.col == 2 or i.col == 3:
-                    self.QList_search.addItem("(" + storageSheet.cell(i.row, 2).value + ") " + storageSheet.cell(i.row, 3).value)
-            
-            # 보여준 항목이 없을시에 '검색결과 없음' 출력
-            if (self.QList_search.count() == 0):
-                self.cantFind()
+                
+            elif i.col == 2 or i.col == 3:
+                self.QList_search.addItem("(" + storageSheet.cell(i.row, 2).value + ") " + storageSheet.cell(i.row, 3).value)
         
+        # 보여준 항목이 없을시에 '검색결과 없음' 출력
+        if (self.QList_search.count() == 0):
+            self.cantFind()
+    
 
     # 검색후 더블 클릭해서 물건의 상세정보를 띄움
     def selItem(self):

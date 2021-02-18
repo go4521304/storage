@@ -75,6 +75,9 @@
      <property name="tabKeyNavigation">
       <bool>true</bool>
      </property>
+     <property name="alternatingRowColors">
+      <bool>false</bool>
+     </property>
      <property name="showGrid">
       <bool>true</bool>
      </property>
@@ -94,7 +97,7 @@
       <number>1</number>
      </property>
      <property name="columnCount">
-      <number>4</number>
+      <number>5</number>
      </property>
      <attribute name="horizontalHeaderVisible">
       <bool>true</bool>
@@ -111,11 +114,23 @@
      <attribute name="horizontalHeaderMinimumSectionSize">
       <number>27</number>
      </attribute>
+     <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="horizontalHeaderStretchLastSection">
+      <bool>false</bool>
+     </attribute>
      <attribute name="verticalHeaderVisible">
       <bool>false</bool>
      </attribute>
      <attribute name="verticalHeaderDefaultSectionSize">
       <number>37</number>
+     </attribute>
+     <attribute name="verticalHeaderShowSortIndicator" stdset="0">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="verticalHeaderStretchLastSection">
+      <bool>false</bool>
      </attribute>
      <row/>
      <column>
@@ -169,6 +184,22 @@
      <column>
       <property name="text">
        <string>품목</string>
+      </property>
+      <property name="font">
+       <font>
+        <family>나눔고딕</family>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="textAlignment">
+       <set>AlignCenter</set>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>비고</string>
       </property>
       <property name="font">
        <font>
@@ -282,8 +313,10 @@
      </property>
      <property name="font">
       <font>
-       <family>나눔고딕</family>
+       <family>나눔스퀘어</family>
        <pointsize>18</pointsize>
+       <weight>50</weight>
+       <bold>false</bold>
       </font>
      </property>
      <property name="editTriggers">
@@ -363,51 +396,11 @@
     </widget>
    </widget>
   </widget>
-  <widget class="QPushButton" name="QBtn_toMain">
-   <property name="geometry">
-    <rect>
-     <x>870</x>
-     <y>30</y>
-     <width>130</width>
-     <height>100</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>나눔고딕</family>
-     <pointsize>14</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>최근 기록</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="QBtn_toSearch">
-   <property name="geometry">
-    <rect>
-     <x>870</x>
-     <y>150</y>
-     <width>130</width>
-     <height>100</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>나눔고딕</family>
-     <pointsize>14</pointsize>
-     <weight>50</weight>
-     <bold>false</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>검색</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="QBtn_warehousing">
    <property name="geometry">
     <rect>
      <x>870</x>
-     <y>290</y>
+     <y>300</y>
      <width>130</width>
      <height>100</height>
     </rect>
@@ -421,10 +414,81 @@
     <string>추가 / 수정</string>
    </property>
   </widget>
+  <widget class="QGroupBox" name="groupBox">
+   <property name="geometry">
+    <rect>
+     <x>855</x>
+     <y>20</y>
+     <width>160</width>
+     <height>260</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>50</weight>
+     <italic>false</italic>
+     <bold>false</bold>
+     <kerning>true</kerning>
+    </font>
+   </property>
+   <property name="title">
+    <string>화면 메뉴</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+   </property>
+   <property name="flat">
+    <bool>false</bool>
+   </property>
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <widget class="QPushButton" name="QBtn_toMain">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>30</y>
+      <width>130</width>
+      <height>100</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>나눔고딕</family>
+      <pointsize>14</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>최근 기록</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="QBtn_toSearch">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>145</y>
+      <width>130</width>
+      <height>100</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>나눔고딕</family>
+      <pointsize>14</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>검색</string>
+    </property>
+   </widget>
+  </widget>
  </widget>
  <tabstops>
-  <tabstop>QBtn_toMain</tabstop>
-  <tabstop>QBtn_toSearch</tabstop>
   <tabstop>QTable_time</tabstop>
   <tabstop>QBtn_search</tabstop>
   <tabstop>QLine_search</tabstop>
